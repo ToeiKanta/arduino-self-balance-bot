@@ -51,10 +51,11 @@ int moveState=0; //0 = balance; 1 = back; 2 = forth
 #if MANUAL_TUNING
   PID pid(&input, &output, &setpoint, 0, 0, 0, DIRECT);
 #else
-  PID pid(&input, &output, &setpoint, 64, 244, 1, DIRECT);
+  PID pid(&input, &output, &setpoint, 74, 204, 1, DIRECT); //64 244
 #endif
 
-
+// BTN
+int TOEI_BTN = 11;
 //MOTOR CONTROLLER
 
 
@@ -95,6 +96,7 @@ void dmpDataReady()
 
 void setup()
 {
+    pinMode(TOEI_BTN, INPUT);
     // join I2C bus (I2Cdev library doesn't do this automatically)
     #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
         Wire.begin();
@@ -127,7 +129,7 @@ void setup()
 //    mpu.setZGyroOffset(0);
 //    mpu.setZAccelOffset(-1789); // 1688 factory default for my test chip
     mpu.setXGyroOffset(30);
-    mpu.setYGyroOffset(38);
+    mpu.setYGyroOffset(370);
     mpu.setZGyroOffset(0);
     mpu.setZAccelOffset(1789); // 1688 factory default for my test chip
     // make sure it worked (returns 0 if so)
@@ -238,8 +240,8 @@ void loop()
         input = ypr[1] * 180/M_PI + 180;
         //--------------------------------      
         
-        Serial.print("input=\t");
-        Serial.print(input);
+//        Serial.print("input=\t");
+//        Serial.print(input);
         //-------------------------------
    }
  //-----------------------------------------
@@ -259,8 +261,8 @@ void loop()
   z= RAD_TO_DEG * (atan2(-yAng, -xAng)+PI);
  
 
-  Serial.print("AngleY= ");
-  Serial.println(y);
+//  Serial.print("AngleY= ");
+//  Serial.println(y);
   
  //------------------------------------------------
 }
@@ -318,13 +320,64 @@ void setPIDTuningValues()
     }
 }
 
-
+int potKp = 0;
+int potKi = 0;
+int potKd = 0;
+String potSerial = "";
+bool firstPot = true;
 void readPIDTuningValues()
 {
-    int potKp = analogRead(A0);
-    int potKi = analogRead(A1);
-    int potKd = analogRead(A2);
-        
+  if(Serial.available() > 0){
+    potSerial = Serial.readString();
+    firstPot = true;
+  }
+  if(firstPot){
+     if(potSerial == "+p"){
+      Serial.print("Entering manual setup - '+p' mode - (press BTN)");  
+    }else if(potSerial == "+i"){
+      Serial.print("Entering manual setup - '+i' mode - (press BTN)");  
+    }else if(potSerial == "+d"){
+      Serial.print("Entering manual setup - '+d' mode - (press BTN)");  
+    }else if(potSerial == "-p"){
+      Serial.print("Entering manual setup - '-p' mode - (press BTN)");  
+    }else if(potSerial == "-i"){
+      Serial.print("Entering manual setup - '-i' mode - (press BTN)");  
+    }else if(potSerial == "-d"){
+      Serial.print("Entering manual setup - '-d' mode - (press BTN)");  
+    }
+  }
+  
+  if(digitalRead(TOEI_BTN) == HIGH){
+    if(potSerial == "+p"){
+      if(potKp+1 <=1023){
+        potKp++;
+      }
+    }else if(potSerial == "+i"){
+        if(potKi+1 <=1023){
+          potKi++;
+        }    
+    }else if(potSerial == "+d"){
+        if(potKd+1 <=1023){
+          potKd++;
+        }  
+    }else if(potSerial == "-p"){
+        if(potKp-1 >=0){
+          potKp--;
+        }  
+    }else if(potSerial == "-i"){
+      if(potKi-1 >=0){
+          potKi--;
+        }  
+    }else if(potSerial == "-d"){
+       if(potKd-1 >=0){
+          potKd--;
+        }  
+    }
+  }
+//    int potKp = analogRead(A0);
+//    int potKi = analogRead(A1);
+//    int potKd = analogRead(A2);
+    
     kp = map(potKp, 0, 1023, 0, 25000) / 100.0; //0 - 250
     ki = map(potKi, 0, 1023, 0, 100000) / 100.0; //0 - 1000
     kd = map(potKd, 0, 1023, 0, 500) / 100.0; //0 - 5
